@@ -1,0 +1,1366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bird Game 3: Forest Royale</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Burbank+Big+Condensed+Black&family=Roboto:wght@900&display=swap');
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #1a202c;
+            font-family: 'Roboto', sans-serif;
+            user-select: none;
+            cursor: none;
+            touch-action: none; 
+        }
+
+        /* --- FONTS & BASICS --- */
+        .fn-font { font-family: 'Burbank Big Condensed Black', sans-serif; text-transform: uppercase; font-style: italic; }
+
+        #game-container { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; }
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: flex; flex-direction: column; }
+
+        /* --- INPUT SELECTION SCREEN --- */
+        #input-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            pointer-events: auto;
+        }
+        .input-card {
+            background: rgba(255,255,255,0.1); border: 2px solid white; border-radius: 10px;
+            padding: 30px; margin: 10px; width: 200px; text-align: center; cursor: pointer;
+            transition: 0.2s;
+        }
+        .input-card:hover { transform: scale(1.05); background: rgba(255,255,255,0.2); }
+        .input-icon { font-size: 4rem; margin-bottom: 10px; }
+
+        /* --- TOP BAR --- */
+        #top-bar {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100px;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 40px; box-sizing: border-box; z-index: 15;
+            pointer-events: auto; background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
+        }
+        .nav-group { display: flex; gap: 15px; }
+        .currency-display {
+            background: rgba(0, 0, 0, 0.6); border: 2px solid #00d2ff; padding: 5px 30px;
+            border-radius: 4px; color: #00d2ff; font-size: 2rem; display: flex; align-items: center; gap: 10px;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.5); transform: skew(-10deg); text-shadow: 0 0 10px #00d2ff;
+        }
+        .nav-btn {
+            background: #fff; color: #1a202c; border: none; padding: 10px 30px; font-size: 1.5rem;
+            cursor: pointer; transform: skew(-10deg); box-shadow: 0 5px 0 #ccc; transition: all 0.1s;
+        }
+        .nav-btn:hover { transform: skew(-10deg) scale(1.05); background: #ffe600; }
+        #shop-btn { background: #00d2ff; color: white; box-shadow: 0 5px 0 #009bbd; }
+        #inventory-btn { background: #bd00ff; color: white; box-shadow: 0 5px 0 #8a00bd; }
+        #career-btn { background: #ff4757; color: white; box-shadow: 0 5px 0 #c0392b; }
+        #index-btn { background: #2ecc71; color: white; box-shadow: 0 5px 0 #27ae60; }
+        #controls-btn { background: #f39c12; color: white; box-shadow: 0 5px 0 #d35400; }
+
+        /* --- LOBBY --- */
+        #lobby-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; pointer-events: auto;
+            background: radial-gradient(circle at 70% 50%, rgba(0,0,0,0) 0%, rgba(0,0,0,0.4) 50%, rgba(20,20,40,0.9) 100%);
+            transition: opacity 0.5s; cursor: default;
+        }
+        .lobby-left {
+            width: 450px; height: 100%; padding: 120px 40px 40px 60px;
+            box-sizing: border-box; display: flex; flex-direction: column;
+            background: linear-gradient(90deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
+        }
+        h1 { font-size: 5rem; color: white; margin: 0; line-height: 0.9; text-shadow: 3px 3px 0 #000; letter-spacing: -2px; transform: skew(-5deg) rotate(-2deg); }
+        .subtitle { font-size: 2.5rem; color: #ffe600; margin-bottom: 40px; text-shadow: 2px 2px 0 rgba(0,0,0,0.5); transform: skew(-5deg); }
+        .quest-card {
+            background: rgba(44, 62, 80, 0.9); border-left: 10px solid #ffe600; padding: 20px;
+            margin-bottom: 20px; color: white; box-shadow: 5px 5px 15px rgba(0,0,0,0.5); transform: skew(-5deg);
+        }
+        .quest-title { color: #ffe600; font-size: 1.5rem; margin-bottom: 5px; }
+        .quest-progress { margin-top: 10px; text-align: right; font-size: 1.2rem; color: #3498db; }
+        #ready-btn {
+            background: #ffe600; color: #1a202c; border: none; padding: 25px 0; width: 100%;
+            font-size: 3rem; cursor: pointer; transform: skew(-5deg);
+            box-shadow: 0 10px 0 #c7b300; transition: all 0.1s; margin-bottom: 20px;
+        }
+        #ready-btn:hover { transform: skew(-5deg) scale(1.02); background: #fff; }
+        #quest-loot-btn {
+            background: #2c3e50; color: #7f8c8d; border: 2px solid #34495e; padding: 15px; font-size: 1.2rem;
+            cursor: not-allowed; transform: skew(-5deg); width: 100%; transition: 0.3s;
+        }
+        #quest-loot-btn.unlocked {
+            background: #2ecc71; color: white; border: none; cursor: pointer;
+            box-shadow: 0 5px 0 #27ae60; animation: pulse 1.5s infinite;
+        }
+        #current-bird-display { color: #fff; font-size: 2rem; text-shadow: 2px 2px 0 #000; margin-bottom: 5px; transform: skew(-5deg); }
+        
+        .rarity-tag { font-size: 1.2rem; padding: 5px 15px; color: white; display: inline-block; margin-bottom: 20px; transform: skew(-10deg); box-shadow: 3px 3px 0 rgba(0,0,0,0.3); text-shadow: 1px 1px 0 #000; font-weight: bold; }
+        .rarity-common { background: #7f8c8d; border: 2px solid #555; }
+        .rarity-uncommon { background: #2ecc71; border: 2px solid #27ae60; box-shadow: 0 0 10px #2ecc71; }
+        .rarity-rare { background: #3498db; border: 2px solid #2980b9; box-shadow: 0 0 10px #3498db; }
+        .rarity-epic { background: #9b59b6; border: 2px solid #8e44ad; box-shadow: 0 0 10px #9b59b6; }
+        .rarity-legendary { background: linear-gradient(135deg, #f1c40f, #e67e22); border: 2px solid gold; box-shadow: 0 0 15px gold; color: #000; text-shadow: none; }
+        .rarity-mythic { background: linear-gradient(135deg, #ffff00, #ff0000); border: 2px solid white; box-shadow: 0 0 20px #ffff00; color: #000; text-shadow: none; }
+        .rarity-divine { background: linear-gradient(135deg, #00ffff, #ffffff); border: 2px solid #00ffff; box-shadow: 0 0 25px #00ffff; color: #000; text-shadow: none; }
+
+        /* --- SCREENS --- */
+        .full-screen-modal {
+            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(20, 20, 35, 0.98); z-index: 40;
+            flex-direction: column; align-items: center; justify-content: flex-start;
+            pointer-events: auto; padding-top: 100px;
+        }
+        .grid-container { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; max-width: 1200px; max-height: 70vh; overflow-y: auto; padding: 20px; }
+        
+        .card-item {
+            width: 200px; background: linear-gradient(160deg, #2c3e50 0%, #000 100%);
+            border: 2px solid #444; padding: 15px; text-align: center;
+            transform: skew(-3deg); transition: 0.2s; position: relative; display: flex; flex-direction: column;
+        }
+        .card-item:hover { transform: skew(-3deg) scale(1.05); border-color: #fff; z-index: 2; }
+        .card-item.selected { border-color: #ffe600; box-shadow: 0 0 20px #ffe600; background: #333; }
+        .locked-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center;
+            font-size: 4rem; color: #e74c3c; z-index: 5;
+        }
+        .card-title { color: white; font-size: 1.5rem; margin-bottom: 5px; }
+        .card-btn { width: 100%; padding: 10px; border: none; cursor: pointer; font-size: 1.2rem; transform: skew(-5deg); margin-top: auto; }
+        .close-btn {
+            position: absolute; top: 40px; right: 40px; background: #e74c3c; color: white; border: none;
+            padding: 10px 40px; font-size: 1.5rem; cursor: pointer; transform: skew(-10deg); box-shadow: 0 5px 0 #c0392b;
+        }
+        .close-btn:hover { background: #ff5e4d; }
+        
+        .shop-crate { 
+            width: 150px; height: 150px; display: flex; justify-content: center; align-items: center; margin: 0 auto 10px; 
+            border-radius: 50%; /* Circle for Nest */
+            position: relative; box-shadow: inset 0 -10px 20px rgba(0,0,0,0.5);
+        }
+        .crate-standard { background: radial-gradient(circle, #8d6e63, #5d4037); border: 4px solid #795548; } 
+        .crate-standard::after { content: '🪺'; font-size: 5rem; } 
+        
+        .crate-premium { background: radial-gradient(circle, #f1c40f, #d35400); border: 4px solid #f39c12; box-shadow: 0 0 30px rgba(243, 156, 18, 0.4); } 
+        .crate-premium::after { content: '🪺'; font-size: 5rem; filter: drop-shadow(0 0 10px gold); }
+
+        /* --- HUD --- */
+        #hud { display: none; width: 100%; height: 100%; pointer-events: none; padding: 20px; }
+        .hud-panel { position: absolute; background: rgba(0,0,0,0.6); padding: 10px 20px; color: white; font-size: 1.5rem; transform: skew(-5deg); border-left: 5px solid #ffe600; }
+        #health-panel { bottom: 30px; left: 30px; }
+        #kills-panel { bottom: 80px; left: 30px; border-color: #ff4757; }
+        #potions-panel { bottom: 30px; left: 50%; transform: translateX(-50%) skew(-10deg); display: flex; gap: 20px; pointer-events: auto; }
+        #enemies-panel { top: 110px; right: 30px; text-align: right; border-left: none; border-right: 5px solid #ff4757; }
+        #quest-hud { top: 110px; left: 30px; border-color: #3498db; }
+        #controls-hint { bottom: 30px; right: 30px; background: none; border: none; text-align: right; text-shadow: 1px 1px 2px black; font-size: 1rem; }
+        
+        #crosshair { 
+            position: absolute; top: 50%; left: 50%; width: 40px; height: 40px; 
+            border: 3px solid white; border-radius: 50%; 
+            transform: translate(-50%, -50%); pointer-events: none; 
+            box-shadow: 0 0 5px black;
+        }
+        #crosshair-dot { position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; background: red; border-radius: 50%; transform: translate(-50%, -50%); }
+        #hit-marker {
+            position: absolute; top: 50%; left: 50%; width: 30px; height: 30px;
+            transform: translate(-50%, -50%) rotate(45deg);
+            pointer-events: none; display: none; z-index: 100;
+        }
+        #hit-marker::before, #hit-marker::after {
+            content: ''; position: absolute; background: #ff0000; box-shadow: 0 0 8px red;
+        }
+        #hit-marker::before { width: 100%; height: 6px; top: 12px; left: 0; }
+        #hit-marker::after { width: 6px; height: 100%; top: 0; left: 12px; }
+
+        .potion-slot { 
+            background: rgba(0,0,0,0.8); border: 2px solid #aaa; padding: 10px 20px; 
+            color: white; font-size: 1.2rem; display: flex; flex-direction: column; align-items: center; 
+            cursor: pointer; transition: 0.1s;
+        }
+        .potion-slot:hover { background: rgba(255,255,255,0.2); border-color: white; }
+        .potion-slot:active { transform: scale(0.95); }
+        .potion-key { font-size: 0.8rem; color: #ffe600; margin-bottom: 2px; }
+        .potion-icon { font-size: 2rem; }
+        .potion-count { font-size: 1.2rem; color: #fff; font-weight: bold; }
+
+        /* --- MOBILE CONTROLS --- */
+        #mobile-controls {
+            display: none; position: absolute; width: 100%; height: 100%; top: 0; left: 0; pointer-events: none; z-index: 20;
+        }
+        .mob-btn {
+            position: absolute; background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.5);
+            border-radius: 50%; pointer-events: auto; display: flex; justify-content: center; align-items: center;
+            color: white; font-size: 2rem;
+        }
+        .mob-btn:active { background: rgba(255,255,255,0.5); }
+        #mob-shoot { bottom: 80px; right: 50px; width: 80px; height: 80px; background: rgba(255,0,0,0.3); border-color: red; }
+        #mob-up { bottom: 150px; left: 50px; width: 60px; height: 60px; }
+        #mob-down { bottom: 60px; left: 50px; width: 60px; height: 60px; }
+
+        /* --- KILL FEED --- */
+        #kill-feed {
+            position: absolute; bottom: 150px; left: 50%; transform: translateX(-50%);
+            display: flex; flex-direction: column; align-items: center; pointer-events: none;
+        }
+        .kill-msg {
+            background: linear-gradient(90deg, transparent, rgba(255, 0, 0, 0.6), transparent);
+            color: #fff; font-size: 1.5rem; padding: 5px 20px; margin-top: 5px;
+            font-family: 'Burbank Big Condensed Black', sans-serif; text-transform: uppercase;
+            text-shadow: 2px 2px 0 #000; opacity: 1; transition: opacity 1s;
+        }
+
+        /* --- LOOT & GAME OVER --- */
+        #loot-modal { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 50; flex-direction: column; align-items: center; justify-content: center; pointer-events: auto; }
+        .case-window { width: 800px; height: 200px; background: #111; border: 5px solid #333; position: relative; overflow: hidden; margin-bottom: 30px; }
+        .case-tape { display: flex; height: 100%; position: absolute; left: 0; top: 0; }
+        .case-line { position: absolute; top: 0; left: 50%; width: 4px; height: 100%; background: #ffe600; transform: translateX(-50%); z-index: 10; }
+        .case-item { width: 180px; height: 100%; border-right: 2px solid #222; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #1a1a1a; flex-shrink: 0; }
+        .case-item-img { font-size: 5rem; margin-bottom: 10px; } 
+        #game-over-screen { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); flex-direction: column; align-items: center; justify-content: center; pointer-events: auto; z-index: 60; }
+        
+        #egg-anim-container { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 55; display: none; text-align: center; }
+        
+        /* Compact Controls Screen */
+        #controls-box {
+            background: rgba(16, 24, 40, 0.95); border: 2px solid white; border-radius: 10px; padding: 30px;
+            display: flex; flex-direction: column; align-items: center; width: 600px;
+            box-shadow: 0 0 50px rgba(0,0,0,0.8);
+        }
+
+        /* Rate Button in Shop */
+        .rate-btn {
+            background: transparent; border: 1px solid #aaa; color: #aaa; padding: 5px 10px;
+            font-size: 0.8rem; cursor: pointer; margin-top: 10px; border-radius: 4px;
+        }
+        .rate-btn:hover { border-color: white; color: white; }
+        .rates-popup { display: none; margin-top: 10px; text-align: left; font-size: 0.8rem; color: #ccc; background: rgba(0,0,0,0.5); padding: 10px; width: 100%; border-radius: 5px; }
+
+        .custom-egg {
+            width: 150px; height: 200px; background-color: #fff;
+            background-image: radial-gradient(#2ecc71 15%, transparent 16%), radial-gradient(#2ecc71 15%, transparent 16%);
+            background-size: 60px 60px; background-position: 0 0, 30px 30px;
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            box-shadow: inset -10px -10px 20px rgba(0,0,0,0.2), 0 0 50px rgba(255, 255, 255, 0.2);
+            animation: shake 0.5s infinite; cursor: pointer; margin: 0 auto;
+        }
+        
+        .stat-row { display: flex; justify-content: space-between; width: 300px; font-size: 2rem; margin: 10px 0; color: white; border-bottom: 1px solid #444; padding-bottom: 5px; }
+        .control-row { display: flex; justify-content: space-between; width: 250px; margin: 5px 0; color: #ccc; border-bottom: 1px solid #333; padding-bottom: 5px; text-align: left; font-size: 0.9rem; }
+        .control-key { color: #ffe600; font-weight: bold; }
+
+        @keyframes spin { 0% { transform: translate(-50%, -50%) rotate(0deg); } 100% { transform: translate(-50%, -50%) rotate(360deg); } }
+        @keyframes shake { 0% { transform: rotate(0deg); } 25% { transform: rotate(5deg); } 75% { transform: rotate(-5deg); } 100% { transform: rotate(0deg); } }
+        .chance-list { color: #aaa; font-size: 0.8rem; text-align: left; margin-top: 10px; font-family: 'Roboto', sans-serif; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px; width: 100%; box-sizing: border-box; }
+        .chance-row { display: flex; justify-content: space-between; }
+        @keyframes pulse { 0% { transform: skew(-5deg) scale(1); } 50% { transform: skew(-5deg) scale(1.05); } 100% { transform: skew(-5deg) scale(1); } }
+        
+        /* Reveal Animation */
+        #reveal-container { display: none; text-align: center; position: relative; }
+        .reveal-shine {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 500px; height: 500px;
+            background: radial-gradient(circle, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0) 70%);
+            z-index: 40; pointer-events: none; animation: spin 4s infinite linear;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/simplex-noise/2.4.0/simplex-noise.min.js"></script>
+</head>
+<body class="fn-font">
+
+    <div id="game-container"></div>
+    <canvas id="confetti-canvas"></canvas>
+
+    <!-- INPUT SELECTION -->
+    <div id="input-screen">
+        <h1 class="fn-font" style="margin-bottom: 50px;">CHOOSE CONTROL MODE</h1>
+        <div style="display:flex;">
+            <div class="input-card" onclick="selectInput('MOUSE')">
+                <div class="input-icon">🖱️</div>
+                <div class="fn-font">MOUSE</div>
+                <div style="font-size:0.8rem; color:#aaa; margin-top:10px;">Best for Desktop. Cursor Aiming.</div>
+            </div>
+            <div class="input-card" onclick="selectInput('TRACKPAD')">
+                <div class="input-icon">💻</div>
+                <div class="fn-font">TRACKPAD</div>
+                <div style="font-size:0.8rem; color:#aaa; margin-top:10px;">Smoother flight. High Sensitivity.</div>
+            </div>
+            <div class="input-card" onclick="selectInput('MOBILE')">
+                <div class="input-icon">📱</div>
+                <div class="fn-font">MOBILE</div>
+                <div style="font-size:0.8rem; color:#aaa; margin-top:10px;">On-screen buttons. Touch aim.</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="ui-layer" style="display:none;">
+        <div id="top-bar">
+            <div class="nav-group">
+                <button id="shop-btn" class="nav-btn fn-font" onclick="openShop()">ITEM SHOP</button>
+                <button id="inventory-btn" class="nav-btn fn-font" onclick="openInventory()">LOCKER</button>
+                <button id="career-btn" class="nav-btn fn-font" onclick="openCareer()">CAREER</button>
+                <button id="index-btn" class="nav-btn fn-font" onclick="openIndex()">INDEX</button>
+                <button id="controls-btn" class="nav-btn fn-font" onclick="openControls()">CONTROLS</button>
+            </div>
+            <div class="currency-display fn-font">
+                <span>🪶</span> <span id="coin-display">1000</span>
+            </div>
+        </div>
+
+        <div id="kill-feed"></div>
+        <div id="feather-popup-container"></div>
+
+        <!-- CONTROLS SCREEN -->
+        <div id="controls-screen" class="full-screen-modal">
+            <div id="controls-box">
+                <h1 class="fn-font" style="margin-bottom: 20px; color:#f39c12;">CONTROLS</h1>
+                <div style="display:flex; gap: 40px; justify-content:center;">
+                    <div>
+                        <h2 style="color:white; font-size:1.2rem;">KEYBOARD / MOUSE</h2>
+                        <div class="control-row"><span class="control-key">W / S</span><span>THROTTLE / SPEED</span></div>
+                        <div class="control-row"><span class="control-key">MOUSE</span><span>STEER & AIM</span></div>
+                        <div class="control-row"><span class="control-key">CLICK</span><span>SHOOT</span></div>
+                        <div class="control-row"><span class="control-key">1 / 2</span><span>USE POTIONS</span></div>
+                    </div>
+                    <div>
+                        <h2 style="color:white; font-size:1.2rem;">MOBILE</h2>
+                        <div class="control-row"><span class="control-key">LEFT ARROWS</span><span>THROTTLE</span></div>
+                        <div class="control-row"><span class="control-key">RIGHT SCREEN</span><span>DRAG TO STEER</span></div>
+                        <div class="control-row"><span class="control-key">TARGET BTN</span><span>SHOOT</span></div>
+                    </div>
+                </div>
+                <button class="close-btn fn-font" style="position:static; margin-top:20px;" onclick="closeScreens()">BACK</button>
+            </div>
+        </div>
+
+        <!-- CAREER SCREEN -->
+        <div id="career-screen" class="full-screen-modal">
+            <h1 class="fn-font" style="margin-bottom: 50px; color:#ff4757;">CAREER STATS</h1>
+            <div class="stat-row"><span style="color:#aaa;">TOTAL KILLS</span><span id="career-kills" style="color:#ff4757;">0</span></div>
+            <div class="stat-row"><span style="color:#aaa;">WINS</span><span id="career-wins" style="color:#f1c40f;">0</span></div>
+            <div class="stat-row"><span style="color:#aaa;">DEATHS</span><span id="career-deaths" style="color:#3498db;">0</span></div>
+            <button class="close-btn fn-font" onclick="closeScreens()">BACK</button>
+        </div>
+
+        <!-- INDEX SCREEN -->
+        <div id="index-screen" class="full-screen-modal">
+            <h1 class="fn-font" style="margin-bottom: 30px; color:#2ecc71;">BIRD INDEX</h1>
+            <div id="index-grid" class="grid-container"></div>
+            <button class="close-btn fn-font" onclick="closeScreens()">BACK</button>
+        </div>
+
+        <div id="shop-screen" class="full-screen-modal">
+            <h1 class="fn-font" style="margin-bottom: 30px; color:#00d2ff;">NEST SHOP</h1>
+            <div class="grid-container">
+                <!-- Power Ups -->
+                <div class="card-item" style="border-color: #ff4757;">
+                    <div style="font-size:3rem;">🧪</div>
+                    <div class="card-title fn-font" style="color: #ff4757">Strength Potion</div>
+                    <div style="color: #ffe600; font-weight: bold;">200 Feathers</div>
+                    <div style="font-size:0.8rem; color:#aaa;">Double Damage (20s)</div>
+                    <button class="card-btn fn-font" style="background: #ff4757; color: white;" onclick="buyPotion('strength', 200)">BUY</button>
+                </div>
+                <div class="card-item" style="border-color: #2ecc71;">
+                    <div style="font-size:3rem;">⚡</div>
+                    <div class="card-title fn-font" style="color: #2ecc71">Speed Potion</div>
+                    <div style="color: #ffe600; font-weight: bold;">200 Feathers</div>
+                    <div style="font-size:0.8rem; color:#aaa;">Double Speed (20s)</div>
+                    <button class="card-btn fn-font" style="background: #2ecc71; color: white;" onclick="buyPotion('speed', 200)">BUY</button>
+                </div>
+
+                <!-- Cases -->
+                <div class="card-item">
+                    <div class="shop-crate crate-standard"></div>
+                    <div class="card-title fn-font">Standard Nest</div>
+                    <div style="color: #ffe600; font-weight: bold;">100 Feathers</div>
+                    <button class="rate-btn" onclick="toggleRates('std')">? RATES</button>
+                    <div id="rates-std" class="rates-popup">
+                        <div class="chance-row"><span>Common</span><span>35%</span></div>
+                        <div class="chance-row"><span>Uncommon</span><span>30%</span></div>
+                        <div class="chance-row"><span>Rare</span><span>20%</span></div>
+                        <div class="chance-row"><span>Epic</span><span>14%</span></div>
+                        <div class="chance-row"><span>Mythic</span><span>0.5%</span></div>
+                        <div class="chance-row"><span>Divine (Falcon)</span><span>0.5%</span></div>
+                    </div>
+                    <button class="card-btn fn-font" style="background: #00d2ff; color: white; margin-top:10px;" onclick="buyBox('STANDARD', 100)">HATCH EGG</button>
+                </div>
+                <div class="card-item" style="border-color: #bd00ff;">
+                    <div class="shop-crate crate-premium"></div>
+                    <div class="card-title fn-font" style="color: #bd00ff;">Premium Nest</div>
+                    <div style="color: #ffe600; font-weight: bold;">500 Feathers</div>
+                    <button class="rate-btn" onclick="toggleRates('prm')">? RATES</button>
+                    <div id="rates-prm" class="rates-popup">
+                        <div class="chance-row"><span>Rare</span><span>20%</span></div>
+                        <div class="chance-row"><span>Epic</span><span>39%</span></div>
+                        <div class="chance-row"><span>Legendary</span><span>30%</span></div>
+                        <div class="chance-row"><span>Mythic</span><span>10%</span></div>
+                         <div class="chance-row"><span>Divine (Falcon)</span><span>1%</span></div>
+                    </div>
+                    <button class="card-btn fn-font" style="background: #bd00ff; color: white; margin-top:10px;" onclick="buyBox('PREMIUM', 500)">HATCH EGG</button>
+                </div>
+            </div>
+            <button class="close-btn fn-font" onclick="closeScreens()">BACK</button>
+        </div>
+
+        <div id="inventory-screen" class="full-screen-modal">
+            <h1 class="fn-font" style="margin-bottom: 30px; color:#bd00ff;">MY LOCKER</h1>
+            <div id="inventory-grid" class="grid-container"></div>
+            <button class="close-btn fn-font" onclick="closeScreens()">BACK</button>
+        </div>
+
+        <div id="lobby-screen">
+            <div class="lobby-left">
+                <h1 class="fn-font">BIRD GAME 3</h1>
+                <div class="subtitle fn-font">ROYALE</div>
+                <div id="current-bird-display" class="fn-font">PIGEON</div>
+                <div id="current-rarity-display" class="rarity-tag rarity-common fn-font">COMMON</div>
+                <div class="quest-card">
+                    <div class="quest-title fn-font">DAILY CHALLENGE</div>
+                    <div class="quest-desc">Eliminate 3 Enemy Birds</div>
+                    <div class="quest-progress fn-font" id="quest-progress">0/3</div>
+                </div>
+                <button id="ready-btn" class="fn-font" onclick="readyUp()">PLAY</button>
+                <div class="loot-section">
+                    <button id="quest-loot-btn" class="fn-font" onclick="openQuestLoot()">CLAIM REWARD</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="loot-modal">
+            <div id="egg-anim-container">
+                <div class="custom-egg"></div>
+                <h2 class="fn-font" style="color:white; margin-top:20px;">HATCHING...</h2>
+            </div>
+            
+            <div id="reveal-container" style="display:none; text-align:center; position:relative;">
+                 <div class="reveal-shine"></div>
+                 <div id="reveal-icon" style="position:relative; z-index:50;"></div>
+                 <div id="reveal-name" class="fn-font" style="color:white; font-size:3rem; position:relative; z-index:50; margin-top:20px;">BIRD NAME</div>
+                 <div class="fn-font" style="color:#ffe600; font-size:2rem; position:relative; z-index:50;">YOU GOT IT!</div>
+                 <button id="close-loot" class="fn-font" style="margin-top:20px; padding: 15px 40px; font-size: 2rem; background: #ffe600; border:none; cursor:pointer; transform:skew(-5deg); position:relative; z-index:50;" onclick="closeLoot()">COLLECT</button>
+            </div>
+
+            <div id="tape-container" style="display:none; width:100%; flex-direction:column; align-items:center;">
+                <h2 class="fn-font" style="color:white; font-size: 4rem;">OPENING...</h2>
+                <div class="case-window"><div class="case-line"></div><div class="case-tape" id="case-tape"></div></div>
+                <div id="reward-text" class="fn-font" style="color:yellow; font-size:3rem; display:none;"></div>
+            </div>
+        </div>
+
+        <div id="hud">
+            <div id="crosshair"><div id="crosshair-dot"></div></div>
+            <div id="hit-marker"></div>
+            <div id="health-panel" class="hud-panel fn-font">HP <span id="hp-val" style="color:#ffe600">100</span></div>
+            <div id="kills-panel" class="hud-panel fn-font">KILLS <span id="kills-val" style="color:#ff4757">0</span></div>
+            
+            <div id="potions-panel">
+                <div class="potion-slot" onclick="usePotion('strength')">
+                    <div class="potion-key">[1]</div>
+                    <div class="potion-icon">🧪</div>
+                    <div class="potion-count" id="str-count">0</div>
+                </div>
+                <div class="potion-slot" onclick="usePotion('speed')">
+                    <div class="potion-key">[2]</div>
+                    <div class="potion-icon">⚡</div>
+                    <div class="potion-count" id="spd-count">0</div>
+                </div>
+            </div>
+
+            <div id="enemies-panel" class="hud-panel fn-font">ALIVE: <span id="enemy-count" style="color: #ff4757;">10</span></div>
+        </div>
+        
+        <!-- MOBILE CONTROLS -->
+        <div id="mobile-controls">
+            <div class="mob-btn" id="mob-up">▲</div>
+            <div class="mob-btn" id="mob-down">▼</div>
+            <div class="mob-btn" id="mob-shoot">🎯</div>
+        </div>
+
+        <div id="game-over-screen">
+            <div id="game-over-title" class="fn-font" style="font-size: 6rem; color: #00d2ff; text-shadow: 5px 5px 0 #000;">#1 BIRD GAME ROYALE</div>
+            <div id="game-over-msg" class="fn-font" style="color:white; font-size: 2rem; margin-top: 10px;"></div>
+            <button class="nav-btn fn-font" style="position:absolute; bottom: 50px; font-size: 2rem; padding: 15px 60px; background: #fff; color:#000;" onclick="resetGame()">RETURN TO LOBBY</button>
+        </div>
+    </div>
+
+    <script>
+        const BIRD_DATA = {
+            'SPARROW': { name: 'Sparrow', rarity: 'COMMON', hp: 80, speed: 0.7, color: '#8d6e63', secondary: '#d7ccc8' }, // Brown
+            'PIGEON': { name: 'Pigeon', rarity: 'COMMON', hp: 100, speed: 0.8, color: '#95a5a6' },
+            'BLUE_JAY': { name: 'Blue Jay', rarity: 'RARE', hp: 90, speed: 1.4, color: '#00008B', secondary: '#ecf0f1' },
+            'CARDINAL': { name: 'Cardinal', rarity: 'RARE', hp: 110, speed: 1.0, color: '#e74c3c', secondary: '#000000' },
+            'DODO': { name: 'Dodo', rarity: 'UNCOMMON', hp: 200, speed: 1.5, color: '#2ecc71' },
+            'SEAGULL': { name: 'Seagull', rarity: 'UNCOMMON', hp: 100, speed: 1.1, color: '#ffffff' },
+            'PARROT': { name: 'Parrot', rarity: 'UNCOMMON', hp: 120, speed: 1.6, color: '#00BFFF' }, 
+            'ORIOLE': { name: 'Oriole', rarity: 'UNCOMMON', hp: 115, speed: 1.5, color: '#FF8C00', secondary: '#000000' },
+            'TOUCAN': { name: 'Toucan', rarity: 'EPIC', hp: 160, speed: 1.3, color: '#111111' }, 
+            'HUMMINGBIRD': { name: 'Hummingbird', rarity: 'RARE', hp: 40, speed: 1.9, color: '#3498db' },
+            'OWL': { name: 'Great Owl', rarity: 'EPIC', hp: 150, speed: 1.2, color: '#8e44ad' },
+            'BALD_EAGLE': { name: 'Bald Eagle', rarity: 'LEGENDARY', hp: 180, speed: 1.0, color: '#5d4037', secondary: '#ffffff' }, 
+            'VULTURE': { name: 'Vulture', rarity: 'MYTHIC', hp: 250, speed: 1.1, color: '#2c0000' },
+            'PELICAN': { name: 'Pelican', rarity: 'LEGENDARY', hp: 200, speed: 1.0, color: '#ecf0f1', secondary: '#f1c40f' }, 
+            'FALCON': { name: 'Falcon', rarity: 'DIVINE', hp: 300, speed: 2.0, color: '#00ffff' } // Cyan/Glowing
+        };
+
+        const RARITY_ORDER = { 'COMMON': 1, 'UNCOMMON': 2, 'RARE': 3, 'EPIC': 4, 'LEGENDARY': 5, 'MYTHIC': 6, 'DIVINE': 7 };
+
+        let gameState = 'INPUT_SELECT';
+        let controlMode = 'MOUSE'; // MOUSE, TRACKPAD, MOBILE
+        let currentBirdType = 'SPARROW';
+        let unlockedBirds = ['SPARROW'];
+        let coins = 1000;
+        let killCount = 0;
+        let quest = { target: 3, current: 0, completed: false };
+        let currentSpeed = 0; 
+        
+        let stats = { kills: 0, wins: 0, deaths: 0 };
+        try {
+            const saved = localStorage.getItem('birdGameStats');
+            if(saved) stats = JSON.parse(saved);
+            const savedBirds = localStorage.getItem('birdGameUnlocked');
+            if(savedBirds) unlockedBirds = JSON.parse(savedBirds);
+            const savedCoins = localStorage.getItem('birdGameCoins');
+            if(savedCoins) coins = parseInt(savedCoins);
+        } catch(e) { console.log('No stats saved'); }
+
+        let inventory = { strength: 0, speed: 0 };
+        let activeEffects = { strength: false, speed: false };
+        
+        let scene, camera, renderer, player, playerModel, clock = new THREE.Clock();
+        let enemies = [], projectiles = [], trees = [], rocks = [];
+        const keys = { w: false, a: false, s: false, d: false, space: false, shoot: false };
+        const mouse = { x: 0, y: 0, movementX: 0, movementY: 0 }; 
+
+        // --- INPUT HANDLING ---
+        function selectInput(mode) {
+            controlMode = mode;
+            document.getElementById('input-screen').style.display = 'none';
+            document.getElementById('ui-layer').style.display = 'flex'; // Show main UI
+            gameState = 'LOBBY';
+            if(mode === 'MOBILE') {
+                document.getElementById('mobile-controls').style.display = 'block';
+                const mobUp = document.getElementById('mob-up');
+                const mobDown = document.getElementById('mob-down');
+                const mobShoot = document.getElementById('mob-shoot');
+
+                mobUp.addEventListener('touchstart', (e) => { e.preventDefault(); keys.w = true; });
+                mobUp.addEventListener('touchend', (e) => { e.preventDefault(); keys.w = false; });
+                mobDown.addEventListener('touchstart', (e) => { e.preventDefault(); keys.s = true; });
+                mobDown.addEventListener('touchend', (e) => { e.preventDefault(); keys.s = false; });
+                mobShoot.addEventListener('touchstart', (e) => { e.preventDefault(); keys.shoot = true; });
+                mobShoot.addEventListener('touchend', (e) => { e.preventDefault(); keys.shoot = false; });
+            }
+        }
+
+        function getBirdSVG(color) {
+            return `<svg viewBox="0 0 100 100" width="80" height="80" style="filter:drop-shadow(2px 2px 2px rgba(0,0,0,0.5));">
+                <path d="M20,60 Q50,10 80,60 L50,90 Z" fill="${color}" stroke="#fff" stroke-width="3"/>
+                <circle cx="40" cy="50" r="5" fill="white"/>
+                <circle cx="60" cy="50" r="5" fill="white"/>
+                <path d="M45,65 L55,65 L50,75 Z" fill="#f39c12"/>
+            </svg>`;
+        }
+
+        function generateNoiseTexture(width, height, c1, c2, noiseScale = 1) {
+            const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height;
+            const ctx = canvas.getContext('2d'); ctx.fillStyle = c1; ctx.fillRect(0,0,width,height);
+            for (let i = 0; i < width * height * noiseScale * 2; i++) {
+                const x = Math.random() * width; const y = Math.random() * height; const size = Math.random() * 3 + 0.5;
+                ctx.fillStyle = Math.random() > 0.5 ? c2 : 'rgba(0,0,0,0.15)';
+                ctx.beginPath(); ctx.ellipse(x, y, size, size*2, Math.random()*Math.PI, 0, Math.PI*2); ctx.fill();
+            }
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        const noiseGen = new SimplexNoise();
+        function getTerrainHeight(x, z) {
+            let h = noiseGen.noise2D(x*0.001, z*0.001)*40 + noiseGen.noise2D(x*0.005, z*0.005)*10;
+            if (h < 0) h = -5;
+            return h;
+        }
+
+        const TEXTURES = {
+            sparrow: generateNoiseTexture(256, 256, '#8d6e63', '#d7ccc8', 2),
+            pigeon: generateNoiseTexture(256, 256, '#6e7f80', '#536872', 2),
+            cardinal: generateNoiseTexture(256, 256, '#e74c3c', '#c0392b', 2),
+            parrot: generateNoiseTexture(256, 256, '#0000ff', '#f1c40f', 3), 
+            hawk: generateNoiseTexture(256, 256, '#c0392b', '#a93226', 2),
+            eagle: generateNoiseTexture(256, 256, '#5D4037', '#3E2723', 3), // Brown
+            bluejay: generateNoiseTexture(256, 256, '#00008B', '#191970', 2), // Dark Blue
+            crow: generateNoiseTexture(256, 256, '#2c3e50', '#17202a', 2),
+            humming: generateNoiseTexture(256, 256, '#2ecc71', '#27ae60', 3),
+            dodo: generateNoiseTexture(256, 256, '#8B7D6B', '#F0E68C', 2),
+            owl: generateNoiseTexture(256, 256, '#5D4037', '#3E2723', 3),
+            vulture: generateNoiseTexture(256, 256, '#222222', '#FF6347', 3),
+            toucan: generateNoiseTexture(256, 256, '#111111', '#000000', 2), // Black
+            seagull: generateNoiseTexture(256, 256, '#FFFFFF', '#EEEEEE', 2), // White
+            falcon: generateNoiseTexture(256, 256, '#00ffff', '#ffffff', 2), 
+            oriole: generateNoiseTexture(256, 256, '#FF8C00', '#000000', 2), 
+            pelican: generateNoiseTexture(256, 256, '#ecf0f1', '#bdc3c7', 2),
+            grass: generateNoiseTexture(512, 512, '#2ecc71', '#27ae60', 4),
+            bark: generateNoiseTexture(256, 256, '#5d4037', '#4e342e', 3),
+            leaves: generateNoiseTexture(256, 256, '#1e8449', '#145a32', 5),
+            water: generateNoiseTexture(256, 256, '#3498db', '#2980b9', 1),
+            rock: generateNoiseTexture(256, 256, '#7f8c8d', '#95a5a6', 2)
+        };
+        TEXTURES.grass.wrapS = TEXTURES.grass.wrapT = THREE.RepeatWrapping;
+        TEXTURES.water.wrapS = TEXTURES.water.wrapT = THREE.RepeatWrapping;
+
+        function init() {
+            scene = new THREE.Scene(); scene.background = new THREE.Color(0x87CEEB); scene.fog = new THREE.Fog(0x87CEEB, 50, 400);
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ antialias: true }); renderer.setSize(window.innerWidth, window.innerHeight); renderer.shadowMap.enabled = true;
+            document.getElementById('game-container').appendChild(renderer.domElement);
+            
+            const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 0.7); scene.add(hemi);
+            const dir = new THREE.DirectionalLight(0xffffff, 0.9); dir.position.set(100, 200, 100); dir.castShadow = true;
+            dir.shadow.mapSize.width = 2048; dir.shadow.mapSize.height = 2048; scene.add(dir);
+
+            createEnvironment(); createPlayer(currentBirdType); updateLobbyUI();
+
+            window.addEventListener('resize', () => { camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
+            
+            const container = document.body;
+            container.addEventListener('click', () => {
+                if(gameState === 'PLAYING' && controlMode !== 'MOBILE') container.requestPointerLock();
+            });
+
+            document.addEventListener('keydown', e => { 
+                if(keys.hasOwnProperty(e.key.toLowerCase())) keys[e.key.toLowerCase()] = true; 
+                if(e.code === 'Space') keys.space = true; 
+                if (gameState === 'PLAYING') { if (e.key === '1') usePotion('strength'); if (e.key === '2') usePotion('speed'); }
+            });
+            document.addEventListener('keyup', e => { if(keys.hasOwnProperty(e.key.toLowerCase())) keys[e.key.toLowerCase()] = false; if(e.code === 'Space') keys.space = false; });
+            document.addEventListener('mousedown', () => keys.shoot = true); 
+            document.addEventListener('mouseup', () => keys.shoot = false);
+            
+            document.addEventListener('mousemove', e => {
+                if (document.pointerLockElement === container) {
+                    mouse.movementX = e.movementX || 0;
+                    mouse.movementY = e.movementY || 0;
+                }
+            });
+            
+            document.addEventListener('touchmove', e => {
+                if(controlMode === 'MOBILE' && gameState === 'PLAYING') {
+                    const touch = e.touches[0];
+                    const cx = window.innerWidth / 2;
+                    const cy = window.innerHeight / 2;
+                    // Only steer if touching right side
+                    if(touch.clientX > cx) {
+                         const dx = touch.clientX - (cx + (window.innerWidth/4));
+                         const dy = touch.clientY - cy;
+                         mouse.movementX = dx * 0.1;
+                         mouse.movementY = dy * 0.1;
+                    }
+                }
+            });
+
+            animate();
+        }
+
+        function createEnvironment() {
+            const gGeo = new THREE.PlaneGeometry(3000, 3000, 64, 64);
+            const pos = gGeo.attributes.position;
+            // noiseGen is global now
+            for(let i=0; i<pos.count; i++) {
+                const x = pos.getX(i); const y = pos.getY(i);
+                // Use helper to ensure match
+                // We are mapping Plane (X,Y) to World (X,Z)
+                // In helper, x=x, z=y
+                let z = getTerrainHeight(x, y); 
+                pos.setZ(i, z);
+            }
+            gGeo.computeVertexNormals();
+            const ground = new THREE.Mesh(gGeo, new THREE.MeshStandardMaterial({ map: TEXTURES.grass }));
+            ground.rotation.x = -Math.PI/2; ground.position.y = -2; ground.receiveShadow = true; scene.add(ground);
+
+            const water = new THREE.Mesh(new THREE.PlaneGeometry(3000, 3000), new THREE.MeshStandardMaterial({ map: TEXTURES.water, transparent: true, opacity: 0.8, color: 0x3498db }));
+            water.rotation.x = -Math.PI/2; water.position.y = 0; scene.add(water);
+
+            for(let i=0; i<800; i++) { // More density
+                const x = (Math.random()-0.5)*2800, z = (Math.random()-0.5)*2800;
+                if(Math.abs(x)<50 && Math.abs(z)<50) continue;
+                
+                const h = getTerrainHeight(x, z);
+                if (h < 0) continue; // Don't spawn in water
+
+                if(Math.random() > 0.1) {
+                    const tree = new THREE.Group();
+                    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(1, 1.5, 5, 6), new THREE.MeshStandardMaterial({map: TEXTURES.bark}));
+                    trunk.position.y = 2.5; tree.add(trunk);
+                    const leaves = new THREE.Mesh(new THREE.ConeGeometry(4, 10, 8), new THREE.MeshStandardMaterial({map: TEXTURES.leaves}));
+                    leaves.position.y = 7.5; tree.add(leaves);
+                    tree.position.set(x, h - 1, z); tree.scale.setScalar(1 + Math.random()*0.8);
+                    scene.add(tree); trees.push(tree);
+                } else {
+                    const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(3), new THREE.MeshStandardMaterial({map: TEXTURES.rock}));
+                    rock.position.set(x, h - 1, z); rock.scale.set(1+Math.random(), 0.5+Math.random(), 1+Math.random());
+                    scene.add(rock); rocks.push(rock);
+                }
+            }
+        }
+
+        function createBirdModel(type, isEnemy=false) {
+            const group = new THREE.Group();
+            const data = BIRD_DATA[type] || BIRD_DATA['PIGEON'];
+            
+            let tex = TEXTURES.pigeon;
+            if(type === 'VULTURE') tex = TEXTURES.vulture;
+            else if(type === 'HAWK') tex = TEXTURES.hawk;
+            else if(type === 'BALD_EAGLE') tex = TEXTURES.eagle;
+            else if(type === 'BLUE_JAY') tex = TEXTURES.bluejay;
+            else if(type === 'CROW') tex = TEXTURES.crow;
+            else if(type === 'HUMMINGBIRD') tex = TEXTURES.humming;
+            else if(type === 'DODO') tex = TEXTURES.dodo;
+            else if(type === 'OWL') tex = TEXTURES.owl;
+            else if(type === 'PARROT') tex = TEXTURES.parrot;
+            else if(type === 'SPARROW') tex = TEXTURES.sparrow;
+            else if(type === 'CARDINAL') tex = TEXTURES.cardinal;
+            else if(type === 'TOUCAN') tex = TEXTURES.toucan;
+            else if(type === 'SEAGULL') tex = TEXTURES.seagull;
+            else if(type === 'FALCON') tex = TEXTURES.falcon;
+            else if(type === 'ORIOLE') tex = TEXTURES.oriole;
+            else if(type === 'PELICAN') tex = TEXTURES.pelican;
+
+            const matBody = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9 });
+            const matBeak = new THREE.MeshStandardMaterial({ color: 0xf39c12 });
+            const matEye = new THREE.MeshStandardMaterial({ color: 0xffffff });
+            const matPupil = new THREE.MeshStandardMaterial({ color: 0x000000 });
+            let wingGeo, tailGeo, bodyGeo; let leftWing, rightWing, tail;
+
+            if (type === 'PELICAN') {
+                const body = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 16), matBody); body.scale.set(1, 1, 1.6); group.add(body);
+                const head = new THREE.Mesh(new THREE.SphereGeometry(0.7, 16, 16), matBody); head.position.set(0, 0.8, 1.4); group.add(head);
+                // Beak Pouch
+                const pouch = new THREE.Mesh(new THREE.SphereGeometry(0.6, 16, 16, 0, Math.PI*2, 0, Math.PI/2), new THREE.MeshStandardMaterial({color:0xffd700}));
+                pouch.rotation.x = Math.PI; pouch.scale.set(0.6, 1, 1.5); pouch.position.set(0, 0.4, 2.4); group.add(pouch);
+                const topBeak = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.1, 1.5), new THREE.MeshStandardMaterial({color:0xffd700}));
+                topBeak.position.set(0, 0.9, 2.4); group.add(topBeak);
+                
+                const eye = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), matEye);
+                const eL = eye.clone(); eL.position.set(0.4, 1.0, 1.6); group.add(eL);
+                const eR = eye.clone(); eR.position.set(-0.4, 1.0, 1.6); group.add(eR);
+
+                wingGeo = new THREE.BoxGeometry(4.0, 0.15, 1.2); 
+                leftWing = new THREE.Mesh(wingGeo, matBody); leftWing.position.set(1.8, 0.2, 0.2);
+                rightWing = new THREE.Mesh(wingGeo, matBody); rightWing.position.set(-1.8, 0.2, 0.2);
+                tail = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.1, 1.2), matBody); tail.position.set(0, 0.2, -1.6); group.add(tail);
+
+            } else if (type === 'TOUCAN') {
+                const body = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 16), matBody); body.scale.set(0.9, 0.9, 1.4); group.add(body);
+                const head = new THREE.Mesh(new THREE.SphereGeometry(0.7, 16, 16), matBody); head.position.set(0, 0.7, 1.2); group.add(head);
+                const beak = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.8, 1.5), new THREE.MeshStandardMaterial({color:0xffa500}));
+                beak.position.set(0, 0.5, 2.3); group.add(beak);
+                const tip = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.8, 0.4), new THREE.MeshStandardMaterial({color:0x000000}));
+                tip.position.set(0, 0.5, 3.2); group.add(tip);
+                const eye = new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 8), new THREE.MeshStandardMaterial({color:0x00ffff}));
+                const eL = eye.clone(); eL.position.set(0.4, 0.9, 1.4); group.add(eL);
+                const eR = eye.clone(); eR.position.set(-0.4, 0.9, 1.4); group.add(eR);
+                wingGeo = new THREE.BoxGeometry(2.5, 0.1, 1.2); 
+                leftWing = new THREE.Mesh(wingGeo, matBody); leftWing.position.set(1.2, 0.2, 0.2);
+                rightWing = new THREE.Mesh(wingGeo, matBody); rightWing.position.set(-1.2, 0.2, 0.2);
+                tail = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.1, 1.4), matBody); tail.position.set(0, 0.2, -1.5); group.add(tail);
+
+            } else if (type === 'SEAGULL') {
+                 const body = new THREE.Mesh(new THREE.SphereGeometry(0.9, 16, 16), matBody); body.scale.set(0.9, 0.9, 1.5); group.add(body);
+                 const head = new THREE.Mesh(new THREE.SphereGeometry(0.6, 16, 16), matBody); head.position.set(0, 0.7, 1.4); group.add(head);
+                 const beak = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.7, 8), new THREE.MeshStandardMaterial({color:0xffcc00})); beak.rotation.x = Math.PI/2; beak.position.set(0, 0.6, 2.0); group.add(beak);
+                 wingGeo = new THREE.BoxGeometry(3.0, 0.1, 0.8);
+                 leftWing = new THREE.Mesh(wingGeo, matBody); leftWing.position.set(1.4, 0.2, 0.2);
+                 rightWing = new THREE.Mesh(wingGeo, matBody); rightWing.position.set(-1.4, 0.2, 0.2);
+                 tail = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.1, 1.2), matBody); tail.position.set(0, 0.2, -1.4); group.add(tail);
+
+            } else if (type === 'DODO') {
+                bodyGeo = new THREE.SphereGeometry(2, 16, 16); bodyGeo.scale(1, 1, 1.2); const body = new THREE.Mesh(bodyGeo, matBody); group.add(body);
+                const head = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 16), matBody); head.position.set(0, 2.5, 1.5); group.add(head);
+                const beak = new THREE.Mesh(new THREE.TorusGeometry(0.8, 0.2, 8, 20, 2.5), new THREE.MeshStandardMaterial({color:0x333})); beak.rotation.y = Math.PI/2; beak.position.set(0, 2.5, 2.5); group.add(beak);
+                wingGeo = new THREE.BoxGeometry(1, 0.2, 0.8); leftWing = new THREE.Mesh(wingGeo, matBody); leftWing.position.set(1.5, 0.5, 0); rightWing = new THREE.Mesh(wingGeo, matBody); rightWing.position.set(-1.5, 0.5, 0);
+                tail = new THREE.Mesh(new THREE.ConeGeometry(0.5, 1, 8), new THREE.MeshStandardMaterial({color:0xffffff})); tail.rotation.x = -0.5; tail.position.set(0, 1, -2); group.add(tail);
+            } else if (type === 'HUMMINGBIRD') {
+                bodyGeo = new THREE.SphereGeometry(0.4, 16, 16); bodyGeo.scale(1, 1, 1.5); const body = new THREE.Mesh(bodyGeo, matBody); group.add(body);
+                const head = new THREE.Mesh(new THREE.SphereGeometry(0.25, 16, 16), matBody); head.position.set(0, 0.3, 0.5); group.add(head);
+                const beak = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.05, 1.5), matBeak); beak.rotation.x = -Math.PI/2; beak.position.set(0, 0.3, 1.3); group.add(beak);
+                wingGeo = new THREE.BoxGeometry(1.2, 0.05, 0.4); leftWing = new THREE.Mesh(wingGeo, new THREE.MeshStandardMaterial({color:0xaaaaaa, transparent:true, opacity:0.8})); leftWing.position.set(0.6, 0.2, 0.2); rightWing = new THREE.Mesh(wingGeo, new THREE.MeshStandardMaterial({color:0xaaaaaa, transparent:true, opacity:0.8})); rightWing.position.set(-0.6, 0.2, 0.2);
+            } else if (type === 'OWL') {
+                bodyGeo = new THREE.CylinderGeometry(1, 0.8, 2.5, 12); const body = new THREE.Mesh(bodyGeo, matBody); body.rotation.x = 0.2; group.add(body);
+                const head = new THREE.Mesh(new THREE.SphereGeometry(1.1, 16, 16), matBody); head.position.set(0, 1.5, 0.2); head.scale.set(1, 0.8, 0.8); group.add(head);
+                const face = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 0.1, 16), new THREE.MeshStandardMaterial({color:0xdddddd})); face.rotation.x = Math.PI/2; face.position.set(0, 1.5, 0.9); group.add(face);
+                const eye = new THREE.Mesh(new THREE.SphereGeometry(0.25, 16, 16), matEye); const eyeL = eye.clone(); eyeL.position.set(0.4, 1.6, 1.0); group.add(eyeL); const eyeR = eye.clone(); eyeR.position.set(-0.4, 1.6, 1.0); group.add(eyeR);
+                const pup = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), matPupil); const pL = pup.clone(); pL.position.set(0.4, 1.6, 1.2); group.add(pL); const pR = pup.clone(); pR.position.set(-0.4, 1.6, 1.2); group.add(pR);
+                wingGeo = new THREE.BoxGeometry(2, 0.2, 1.5); leftWing = new THREE.Mesh(wingGeo, matBody); leftWing.position.set(1.2, 0.5, 0); rightWing = new THREE.Mesh(wingGeo, matBody); rightWing.position.set(-1.2, 0.5, 0);
+            } else if (type === 'VULTURE') {
+                const body = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 16), matBody); body.scale.set(1, 1, 1.4); body.rotation.x = -0.2; group.add(body);
+                const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.4,0.8), new THREE.MeshStandardMaterial({color:0xffaaaa})); neck.position.set(0,0.5,1.4); neck.rotation.x=-0.5; group.add(neck);
+                const head = new THREE.Mesh(new THREE.SphereGeometry(0.4, 12, 12), new THREE.MeshStandardMaterial({color:0xffaaaa})); head.position.set(0, 0.9, 1.7); group.add(head);
+                const beak = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.6, 8), new THREE.MeshStandardMaterial({color:0xeeeeee})); beak.rotation.x = -Math.PI/2; beak.position.set(0, 0.8, 2.1); group.add(beak);
+                const ruff = new THREE.Mesh(new THREE.TorusGeometry(0.6, 0.3, 8, 16), new THREE.MeshStandardMaterial({color:0x222})); ruff.rotation.x = Math.PI/2; ruff.position.set(0, 0.4, 1.0); group.add(ruff);
+                wingGeo = new THREE.BoxGeometry(3.5, 0.2, 1.5); leftWing = new THREE.Mesh(wingGeo, matBody); leftWing.position.set(1.8, 0.5, 0); rightWing = new THREE.Mesh(wingGeo, matBody); rightWing.position.set(-1.8, 0.5, 0);
+            } else if (type === 'PARROT') {
+                const body = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 16), matBody); body.scale.set(0.8, 0.8, 1.5); group.add(body);
+                const head = new THREE.Mesh(new THREE.SphereGeometry(0.6, 16, 16), matBody); head.position.set(0, 0.8, 1.4); group.add(head);
+                const beakGeo = new THREE.TorusGeometry(0.3, 0.1, 8, 10, 2); 
+                const beak = new THREE.Mesh(beakGeo, new THREE.MeshStandardMaterial({color: 0x333}));
+                beak.rotation.y = Math.PI/2; beak.rotation.z = -0.5; beak.position.set(0, 0.7, 2.0); group.add(beak);
+                const eye = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), matEye);
+                const eL = eye.clone(); eL.position.set(0.4, 0.9, 1.6); group.add(eL);
+                const eR = eye.clone(); eR.position.set(-0.4, 0.9, 1.6); group.add(eR);
+                wingGeo = new THREE.BoxGeometry(2.5, 0.1, 1.2); 
+                leftWing = new THREE.Mesh(wingGeo, matBody); leftWing.position.set(1.2, 0.2, 0.2);
+                rightWing = new THREE.Mesh(wingGeo, matBody); rightWing.position.set(-1.2, 0.2, 0.2);
+                tail = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.1, 2.5), new THREE.MeshStandardMaterial({color: 0xff0000})); 
+                tail.position.set(0, 0.2, -1.8); group.add(tail);
+            } else if (type === 'CARDINAL') {
+                const body = new THREE.Mesh(new THREE.SphereGeometry(0.9, 16, 16), matBody); body.scale.set(0.9, 0.9, 1.5); group.add(body);
+                const head = new THREE.Mesh(new THREE.SphereGeometry(0.6, 16, 16), matBody); head.position.set(0, 0.7, 1.3); group.add(head);
+                const crest = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.5, 8), matBody); crest.rotation.x = -0.5; crest.position.set(0, 1.2, 1.3); group.add(crest);
+                const beak = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.4, 8), matBeak); beak.rotation.x = Math.PI/2; beak.position.set(0, 0.6, 1.8); group.add(beak);
+                const mask = new THREE.Mesh(new THREE.SphereGeometry(0.61, 16, 16, 0, Math.PI * 2, 0, 0.5), new THREE.MeshStandardMaterial({color:0x000000})); mask.rotation.x = Math.PI/2; mask.position.set(0, 0.7, 1.35); group.add(mask);
+                wingGeo = new THREE.BoxGeometry(2.2, 0.1, 1.1); leftWing = new THREE.Mesh(wingGeo, matBody); leftWing.position.set(0.9, 0.2, 0.2); rightWing = new THREE.Mesh(wingGeo, matBody); rightWing.position.set(-0.9, 0.2, 0.2);
+                tail = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.1, 1.4), matBody); tail.position.set(0, 0.2, -1.3); group.add(tail);
+            } else if (type === 'BLUE_JAY') {
+                const body = new THREE.Mesh(new THREE.SphereGeometry(0.9, 16, 16), matBody); body.scale.set(0.9, 0.9, 1.5); group.add(body);
+                const head = new THREE.Mesh(new THREE.SphereGeometry(0.6, 16, 16), matBody); head.position.set(0, 0.7, 1.3); group.add(head);
+                const crest = new THREE.Mesh(new THREE.ConeGeometry(0.25, 0.4, 8), matBody); crest.rotation.x = -0.4; crest.position.set(0, 1.1, 1.3); group.add(crest);
+                const beak = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.4, 8), new THREE.MeshStandardMaterial({color:0x111})); beak.rotation.x = Math.PI/2; beak.position.set(0, 0.6, 1.8); group.add(beak);
+                const eye = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), matEye);
+                const eL = eye.clone(); eL.position.set(0.3, 0.8, 1.5); group.add(eL);
+                const eR = eye.clone(); eR.position.set(-0.3, 0.8, 1.5); group.add(eR);
+                const chest = new THREE.Mesh(new THREE.SphereGeometry(0.8, 16, 16), new THREE.MeshStandardMaterial({color:0xecf0f1}));
+                chest.scale.set(0.8, 0.8, 1.0); chest.position.set(0, -0.2, 0.5); group.add(chest);
+                wingGeo = new THREE.BoxGeometry(2.2, 0.1, 1.1); 
+                leftWing = new THREE.Mesh(wingGeo, matBody); leftWing.position.set(0.9, 0.2, 0.2);
+                rightWing = new THREE.Mesh(wingGeo, matBody); rightWing.position.set(-0.9, 0.2, 0.2);
+                tail = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.1, 1.6), matBody); tail.position.set(0, 0.2, -1.4); group.add(tail);
+
+            } else if (type === 'SPARROW') {
+                const body = new THREE.Mesh(new THREE.SphereGeometry(0.8, 16, 16), matBody); body.scale.set(0.9, 0.9, 1.4); group.add(body);
+                const head = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 16), matBody); head.position.set(0, 0.6, 1.2); group.add(head);
+                const beak = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.4, 8), matBeak); beak.rotation.x = Math.PI/2; beak.position.set(0, 0.5, 1.6); group.add(beak);
+                
+                const eye = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), matEye);
+                const eL = eye.clone(); eL.position.set(0.3, 0.7, 1.4); group.add(eL);
+                const eR = eye.clone(); eR.position.set(-0.3, 0.7, 1.4); group.add(eR);
+
+                wingGeo = new THREE.BoxGeometry(2, 0.1, 1.0);
+                leftWing = new THREE.Mesh(wingGeo, matBody); leftWing.position.set(0.8, 0.2, 0.2);
+                rightWing = new THREE.Mesh(wingGeo, matBody); rightWing.position.set(-0.8, 0.2, 0.2);
+                tail = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.1, 1.2), matBody); tail.position.set(0, 0.2, -1.2); group.add(tail);
+            } else if (type === 'BALD_EAGLE') {
+                const body = new THREE.Mesh(new THREE.SphereGeometry(1.1, 16, 16), matBody); body.scale.set(0.9, 0.9, 1.6); group.add(body);
+                // White Head
+                const headMat = new THREE.MeshStandardMaterial({color: 0xffffff, roughness: 0.9});
+                const head = new THREE.Mesh(new THREE.SphereGeometry(0.7, 16, 16), headMat); head.position.set(0, 0.8, 1.5); group.add(head);
+                const beak = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.6, 8), new THREE.MeshStandardMaterial({color:0xffd700})); beak.rotation.x = Math.PI/2; beak.position.set(0, 0.7, 2.1); group.add(beak);
+                const eye = new THREE.Mesh(new THREE.SphereGeometry(0.13, 8, 8), matEye);
+                const eL = eye.clone(); eL.position.set(0.45, 0.9, 1.7); group.add(eL);
+                const eR = eye.clone(); eR.position.set(-0.45, 0.9, 1.7); group.add(eR);
+                const span = 4.5;
+                wingGeo = new THREE.BoxGeometry(span, 0.15, 1.5); 
+                leftWing = new THREE.Mesh(wingGeo, matBody); leftWing.position.set(span*0.4, 0.2, 0.2);
+                rightWing = new THREE.Mesh(wingGeo, matBody); rightWing.position.set(-span*0.4, 0.2, 0.2);
+                tail = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.1, 1.8), headMat); tail.position.set(0, 0.2, -1.5); group.add(tail); // White Tail
+
+            } else if (type === 'DIVINE_FALCON') {
+                const body = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 16), new THREE.MeshStandardMaterial({color:0x00ffff, emissive:0x004444})); body.scale.set(0.8, 0.8, 1.8); group.add(body);
+                const head = new THREE.Mesh(new THREE.SphereGeometry(0.6, 16, 16), new THREE.MeshStandardMaterial({color:0xffffff, emissive:0x222222})); head.position.set(0, 0.8, 1.6); group.add(head);
+                const beak = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.6, 8), new THREE.MeshStandardMaterial({color:0x00ffff})); beak.rotation.x = Math.PI/2; beak.position.set(0, 0.7, 2.1); group.add(beak);
+                wingGeo = new THREE.BoxGeometry(3.5, 0.1, 1.2); 
+                leftWing = new THREE.Mesh(wingGeo, new THREE.MeshStandardMaterial({color:0x00ffff, transparent:true, opacity:0.8})); leftWing.position.set(1.5, 0.2, 0.2);
+                rightWing = new THREE.Mesh(wingGeo, new THREE.MeshStandardMaterial({color:0x00ffff, transparent:true, opacity:0.8})); rightWing.position.set(-1.5, 0.2, 0.2);
+                tail = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.1, 2.0), new THREE.MeshStandardMaterial({color:0xffffff})); tail.position.set(0, 0.2, -1.6); group.add(tail);
+
+            } else if (type === 'ORIOLE') {
+                const body = new THREE.Mesh(new THREE.SphereGeometry(0.7, 16, 16), new THREE.MeshStandardMaterial({color:0xff7f00})); body.scale.set(0.9, 0.9, 1.4); group.add(body);
+                const head = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 16), new THREE.MeshStandardMaterial({color:0x111111})); head.position.set(0, 0.6, 1.1); group.add(head);
+                const beak = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.4, 8), new THREE.MeshStandardMaterial({color:0x333333})); beak.rotation.x = Math.PI/2; beak.position.set(0, 0.5, 1.5); group.add(beak);
+                wingGeo = new THREE.BoxGeometry(2, 0.1, 0.9);
+                leftWing = new THREE.Mesh(wingGeo, new THREE.MeshStandardMaterial({color:0x111111})); leftWing.position.set(0.8, 0.2, 0.2);
+                rightWing = new THREE.Mesh(wingGeo, new THREE.MeshStandardMaterial({color:0x111111})); rightWing.position.set(-0.8, 0.2, 0.2);
+                tail = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.1, 1.2), new THREE.MeshStandardMaterial({color:0x111111})); tail.position.set(0, 0.2, -1.2); group.add(tail);
+
+            } else {
+                // GENERIC
+                const body = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 16), matBody); body.scale.set(0.8, 0.8, 1.5); group.add(body);
+                const head = new THREE.Mesh(new THREE.SphereGeometry(0.6, 16, 16), matBody); head.position.set(0, 0.8, 1.4); group.add(head);
+                const beak = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.6, 8), matBeak); beak.rotation.x = Math.PI/2; beak.position.set(0, 0.7, 1.9); group.add(beak);
+                const eye = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), matEye);
+                const eL = eye.clone(); eL.position.set(0.4, 0.9, 1.6); group.add(eL);
+                const eR = eye.clone(); eR.position.set(-0.4, 0.9, 1.6); group.add(eR);
+                const span = 2.5;
+                wingGeo = new THREE.BoxGeometry(span, 0.1, 1.2); 
+                leftWing = new THREE.Mesh(wingGeo, matBody); leftWing.position.set(span*0.4, 0.2, 0.2);
+                rightWing = new THREE.Mesh(wingGeo, matBody); rightWing.position.set(-span*0.4, 0.2, 0.2);
+                tail = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.1, 1.5), matBody); tail.position.set(0, 0.2, -1.4); group.add(tail);
+            }
+
+            const leftWingGrp = new THREE.Group(); if(leftWing) leftWingGrp.add(leftWing);
+            const rightWingGrp = new THREE.Group(); if(rightWing) rightWingGrp.add(rightWing);
+            group.add(leftWingGrp); group.add(rightWingGrp);
+
+            group.userData = { 
+                hp: data.hp, maxHp: data.hp, speed: data.speed, type: type, 
+                wings: [leftWingGrp, rightWingGrp], radius: 2 
+            };
+            return group;
+        }
+
+        function createPlayer(type) { if(player) scene.remove(player); playerModel = createBirdModel(type); player = new THREE.Group(); player.add(playerModel); player.position.set(0, 40, 0); scene.add(player); player.userData = { lastShot: 0 }; }
+        function spawnEnemies(count) {
+            enemies.forEach(e => scene.remove(e)); enemies = [];
+            const types = Object.keys(BIRD_DATA);
+            for(let i=0; i<count; i++) {
+                const type = types[Math.floor(Math.random()*types.length)];
+                const en = createBirdModel(type, true);
+                en.position.set((Math.random()-0.5)*2500, 30+Math.random()*50, (Math.random()-0.5)*2500);
+                scene.add(en); enemies.push(en);
+            }
+            updateHUD();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = clock.getDelta(), time = clock.getElapsedTime();
+
+            if(gameState === 'LOBBY') {
+                camera.position.x = player.position.x + Math.sin(time*0.5)*15;
+                camera.position.z = player.position.z + Math.cos(time*0.5)*15;
+                camera.position.y = player.position.y + 5;
+                camera.lookAt(player.position);
+                playerModel.position.y = Math.sin(time*2)*0.5;
+                const f = Math.sin(time*5)*0.2;
+                if(playerModel.userData.wings) { playerModel.userData.wings[0].rotation.z = f; playerModel.userData.wings[1].rotation.z = -f; }
+            } 
+            else if(gameState === 'PLAYING') {
+                const isDodo = playerModel.userData.type === 'DODO';
+                if (isDodo) {
+                    player.rotation.y -= mouse.movementX * (controlMode==='MOBILE'?0.01:0.002);
+                    player.rotation.x -= mouse.movementY * (controlMode==='MOBILE'?0.01:0.002);
+                    player.rotation.x = Math.max(-1.0, Math.min(1.0, player.rotation.x));
+                    let speed = playerModel.userData.speed * 20; if (keys.space) speed *= 1.5; 
+                    let moveZ = 0; if (keys.w) moveZ = 1; if (keys.s) moveZ = -0.5;
+                    const dir = new THREE.Vector3(0, 0, moveZ).applyAxisAngle(new THREE.Vector3(0,1,0), player.rotation.y);
+                    const proposedPos = player.position.clone().add(dir.multiplyScalar(speed * delta));
+                    let blocked = false;
+                    for(let t of trees) { if(proposedPos.distanceTo(t.position) < 4) { blocked = true; break; } }
+                    for(let r of rocks) { if(proposedPos.distanceTo(r.position) < 4) { blocked = true; break; } }
+                    if(!blocked) player.position.copy(proposedPos);
+                    const h = getTerrainHeight(player.position.x, player.position.z);
+                    player.position.y = h + 2; 
+                    const camOff = new THREE.Vector3(0, 8, -15).applyAxisAngle(new THREE.Vector3(0,1,0), player.rotation.y);
+                    camera.position.lerp(player.position.clone().add(camOff), 0.1);
+                    camera.lookAt(player.position.clone().add(new THREE.Vector3(0,0,1).applyQuaternion(player.quaternion).multiplyScalar(20)));
+                } else {
+                    player.rotation.y -= mouse.movementX * (controlMode==='MOBILE'?0.005:0.0015);
+                    player.rotation.x -= mouse.movementY * (controlMode==='MOBILE'?0.005:0.0015);
+                    player.rotation.x = Math.max(-1.2, Math.min(1.2, player.rotation.x));
+                    if (Math.abs(mouse.movementX) < 1) {
+                         player.rotation.z = THREE.MathUtils.lerp(player.rotation.z, 0, delta * 2);
+                    } else {
+                         player.rotation.z = -mouse.movementX * 0.03;
+                    }
+                    let baseSpeed = playerModel.userData.speed * 40;
+                    if(activeEffects.speed) baseSpeed *= 2;
+                    let targetSpeed = baseSpeed; 
+                    if(keys.w) targetSpeed *= 1.5; 
+                    if(keys.s) targetSpeed *= 0.5; 
+                    currentSpeed += (targetSpeed - currentSpeed) * 2.0 * delta;
+                    const dir = new THREE.Vector3(0, 0, 1).applyQuaternion(player.quaternion);
+                    const moveVec = dir.clone().multiplyScalar(currentSpeed * delta);
+                    const nextPos = player.position.clone().add(moveVec);
+                    if(nextPos.y < 2) { gameOver(false); return; } 
+                    for(let t of trees) { if(nextPos.distanceTo(t.position) < 6) { gameOver(false); return; } }
+                    for(let r of rocks) { if(nextPos.distanceTo(r.position) < 5) { gameOver(false); return; } }
+                    player.position.add(moveVec);
+                    const camOff = new THREE.Vector3(0, 6, -15).applyMatrix4(player.matrixWorld);
+                    camera.position.lerp(camOff, 0.1);
+                    camera.lookAt(player.position.clone().add(dir.multiplyScalar(20)));
+                    if(playerModel.userData.wings) {
+                        const f = Math.sin(time * 20) * 0.6;
+                        playerModel.userData.wings[0].rotation.z = f; playerModel.userData.wings[1].rotation.z = -f;
+                    }
+                }
+                
+                // Decay mouse movement if on mobile to stop turning
+                if(controlMode === 'MOBILE') {
+                    mouse.movementX *= 0.9;
+                    mouse.movementY *= 0.9;
+                } else {
+                    mouse.movementX = 0; mouse.movementY = 0;
+                }
+
+                if(keys.shoot && time > player.userData.lastShot + 0.15) {
+                    fireHitscan(player);
+                    player.userData.lastShot = time;
+                }
+
+                const allBirds = [player, ...enemies];
+                enemies.forEach(e => {
+                    // AI Target Update
+                    // Enemies fight each other (70% chance) or Player (30%)
+                    if (!e.userData.target || Math.random() < 0.01) {
+                         const pool = allBirds.filter(b => b !== e && b.userData.hp > 0);
+                         if(pool.length > 0) e.userData.target = pool[Math.floor(Math.random()*pool.length)];
+                    }
+                    
+                    const target = e.userData.target;
+                    const fwd = new THREE.Vector3(0,0,1).applyQuaternion(e.quaternion);
+                    
+                    if(target && target.position) {
+                        const desired = target.position.clone().sub(e.position).normalize();
+                        const newDir = fwd.clone().lerp(desired, 2 * delta).normalize();
+                        const lookAtPos = e.position.clone().add(newDir);
+                        e.lookAt(lookAtPos);
+                        
+                        // Shoot if aimed
+                        if(e.position.distanceTo(target.position) < 300 && time > e.userData.nextShot) {
+                            // AI Shoot
+                            fireHitscan(e); 
+                            e.userData.nextShot = time + 0.8 + Math.random();
+                        }
+                    } else { e.rotation.y += (Math.random()-0.5) * delta; }
+                    
+                    e.position.add(fwd.multiplyScalar(e.userData.speed * 12 * delta));
+                    if(e.position.y < 10) { e.position.y = 10; e.rotation.x = -0.5; }
+                    if(e.userData.wings) {
+                        const f = Math.sin(time * 20 + e.id) * 0.6;
+                        e.userData.wings[0].rotation.z = f; e.userData.wings[1].rotation.z = -f;
+                    }
+                });
+
+                // Projectiles
+                for(let i=projectiles.length-1; i>=0; i--) {
+                    const p = projectiles[i]; p.position.add(p.userData.vel.clone().multiplyScalar(delta)); p.userData.life -= delta;
+                    
+                    // Simple collision for AI projectiles
+                    if(!p.userData.isPlayer) {
+                        // Against Player
+                        if(p.position.distanceTo(player.position) < 5) {
+                            playerModel.userData.hp -= p.userData.dmg;
+                            updateHUD();
+                            if(playerModel.userData.hp <= 0) gameOver(false);
+                            scene.remove(p); projectiles.splice(i, 1);
+                            continue;
+                        }
+                        // Against other AI
+                        for(let j=enemies.length-1; j>=0; j--) {
+                             if(p.userData.owner !== enemies[j] && p.position.distanceTo(enemies[j].position) < 5) {
+                                enemies[j].userData.hp -= p.userData.dmg;
+                                if(enemies[j].userData.hp <= 0) {
+                                    scene.remove(enemies[j]); enemies.splice(j,1); updateHUD();
+                                }
+                                scene.remove(p); projectiles.splice(i, 1);
+                                break;
+                             }
+                        }
+                    }
+
+                    if(p.userData.life <= 0) { scene.remove(p); projectiles.splice(i,1); }
+                }
+                if(enemies.length === 0) gameOver(true);
+                
+                if(activeEffects.strength) {
+                   // logic handled in damage calc
+                }
+            }
+            renderer.render(scene, camera);
+        }
+
+        // --- POWERUPS ---
+        function buyPotion(type, cost) {
+            if(coins >= cost) {
+                coins -= cost;
+                inventory[type]++;
+                updateHUD();
+                closeScreens();
+            } else alert("Need more Feathers!");
+        }
+
+        function usePotion(type) {
+            if(inventory[type] > 0 && !activeEffects[type]) {
+                inventory[type]--;
+                activeEffects[type] = true;
+                updateHUD();
+                setTimeout(() => {
+                    activeEffects[type] = false;
+                }, 20000); 
+            }
+        }
+        function fireHitscan(owner) {
+            const raycaster = new THREE.Raycaster();
+            if(owner === player) {
+                raycaster.setFromCamera(new THREE.Vector2(0, 0), camera); 
+            } else {
+                const fwd = new THREE.Vector3(0,0,1).applyQuaternion(owner.quaternion);
+                raycaster.set(owner.position, fwd);
+            }
+            let potentialTargets = [];
+            if(owner === player) potentialTargets = enemies.map(e => e.children).flat();
+            else potentialTargets = player.children; 
+
+            let hitObj = null;
+            let closestDist = Infinity;
+            let endPoint = new THREE.Vector3(0, 0, -500).applyMatrix4(owner === player ? camera.matrixWorld : owner.matrixWorld);
+
+            const targetList = (owner === player) ? enemies : [player];
+            for(let t of targetList) {
+                const toTarget = t.position.clone().sub(owner.position);
+                const dist = toTarget.length();
+                if(dist > 400) continue; 
+                
+                const fwd = new THREE.Vector3(0,0,1).applyQuaternion(owner.quaternion);
+                const angle = fwd.angleTo(toTarget);
+                
+                // AI gets slightly wider aim assist than player to be dangerous
+                const threshold = (owner === player) ? 0.25 : 0.2; 
+                
+                if(angle < threshold) {
+                    if(dist < closestDist) {
+                        closestDist = dist;
+                        hitObj = t;
+                        endPoint = t.position.clone();
+                    }
+                }
+            }
+
+            if (hitObj) {
+                let dmg = 25;
+                if(activeEffects.strength) dmg *= 2; 
+
+                hitObj.userData.hp -= dmg;
+                // Instant aggro
+                if(hitObj.userData && !hitObj.userData.isPlayer) {
+                    hitObj.userData.target = owner; 
+                }
+
+                if(owner === player) {
+                    const hm = document.getElementById('hit-marker'); 
+                    hm.style.display = 'block'; setTimeout(() => hm.style.display = 'none', 100);
+                }
+
+                hitObj.traverse((child) => {
+                    if (child.isMesh) {
+                        if (!child.userData.origColor) child.userData.origColor = child.material.color.getHex();
+                        child.material.color.setHex(0xff0000);
+                        setTimeout(() => { if(child.material) child.material.color.setHex(child.userData.origColor); }, 100);
+                    }
+                });
+                createExplosion(endPoint);
+                if(hitObj.userData.hp <= 0) {
+                    if(hitObj === player) { stats.deaths++; saveStats(); gameOver(false); }
+                    else {
+                        if(owner === player) { 
+                            showKillMessage(hitObj.userData.type);
+                            showFeatherPopup(50);
+                            killCount++; stats.kills++; coins += 50; saveStats(); onQuestProgress(); 
+                        }
+                        scene.remove(hitObj);
+                        enemies = enemies.filter(e => e !== hitObj);
+                        updateHUD();
+                    }
+                }
+            }
+            drawLaser(owner.position, endPoint);
+        }
+
+        function fireProjectile(owner, dir, isPlayer) {
+             // For Enemy AI shooting "real" projectiles instead of hitscan
+            const p = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 4), new THREE.MeshBasicMaterial({color: isPlayer?0xffff00:0xff0000}));
+            p.rotation.x = Math.PI/2; p.position.copy(owner.position).add(dir.clone().multiplyScalar(3)); p.lookAt(p.position.clone().add(dir));
+            p.userData = { vel: dir.clone().multiplyScalar(100), life: 3, dmg: 10, isPlayer: isPlayer, owner: owner };
+            scene.add(p); projectiles.push(p);
+        }
+
+        function drawLaser(start, end) {
+            const material = new THREE.LineBasicMaterial({ color: 0xffff00, linewidth: 5 }); 
+            const geometry = new THREE.BufferGeometry().setFromPoints([start, end]);
+            const line = new THREE.Line(geometry, material); scene.add(line); setTimeout(() => scene.remove(line), 50);
+        }
+
+        function createExplosion(pos) {
+            const pGeo = new THREE.BufferGeometry();
+            const pCount = 10; const positions = new Float32Array(pCount * 3);
+            for(let i=0; i<pCount*3; i++) positions[i] = (Math.random()-0.5)*2;
+            pGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            const pMat = new THREE.PointsMaterial({color: 0xffaa00, size: 1, transparent: true});
+            const particles = new THREE.Points(pGeo, pMat);
+            particles.position.copy(pos); scene.add(particles); setTimeout(() => scene.remove(particles), 500);
+        }
+
+        function showKillMessage(birdType) {
+            const feed = document.getElementById('kill-feed');
+            const msg = document.createElement('div'); msg.className = 'kill-msg'; msg.innerText = `ELIMINATED ${birdType}`;
+            feed.appendChild(msg); setTimeout(() => { msg.style.opacity = 0; setTimeout(()=>feed.removeChild(msg), 1000); }, 2000);
+        }
+
+        function showFeatherPopup(amount) {
+            const container = document.getElementById('feather-popup-container');
+            const el = document.createElement('div');
+            el.className = 'feather-popup';
+            el.innerText = `+${amount} 🪶`;
+            container.appendChild(el);
+            setTimeout(() => container.removeChild(el), 1000);
+        }
+
+        function saveStats() { localStorage.setItem('birdGameStats', JSON.stringify(stats)); localStorage.setItem('birdGameUnlocked', JSON.stringify(unlockedBirds)); localStorage.setItem('birdGameCoins', coins); }
+        function updateHUD() { 
+            document.getElementById('coin-display').innerText = coins; 
+            document.getElementById('enemy-count').innerText = enemies.length; 
+            if(playerModel) document.getElementById('hp-val').innerText = Math.floor(Math.max(0, playerModel.userData.hp)); 
+            document.getElementById('quest-progress').innerText = `${quest.current}/${quest.target}`; 
+            document.getElementById('kills-val').innerText = killCount;
+            document.getElementById('str-count').innerText = inventory.strength;
+            document.getElementById('spd-count').innerText = inventory.speed;
+        }
+        function openInventory() {
+            const grid = document.getElementById('inventory-grid'); grid.innerHTML = '';
+            for(let key in BIRD_DATA) {
+                const bird = BIRD_DATA[key]; const unlocked = unlockedBirds.includes(key); const selected = currentBirdType === key;
+                const div = document.createElement('div'); div.className = `card-item ${selected?'selected':''} ${!unlocked?'locked':''}`;
+                let rColor = bird.rarity==='MYTHIC'?'#ffff00':'#ccc';
+                if(bird.rarity === 'DIVINE') rColor = '#00ffff';
+                const lockUI = !unlocked ? '<div class="locked-overlay">🔒</div>' : '';
+                const btn = unlocked ? (selected ? '<div class="fn-font" style="color:#2ecc71">EQUIPPED</div>' : `<button class="card-btn fn-font" style="background:#fff" onclick="selectBird('${key}')">EQUIP</button>`) : '<div class="fn-font">LOCKED</div>';
+                div.innerHTML = `${lockUI}<div class="case-item-img">${getBirdSVG(bird.color)}</div><div class="card-title fn-font" style="color:${rColor}">${bird.name}</div><div class="fn-font" style="font-size:0.8rem; color:${rColor};">${bird.rarity}</div>${btn}`;
+                grid.appendChild(div);
+            }
+            document.getElementById('inventory-screen').style.display = 'flex';
+        }
+        function openIndex() {
+             const grid = document.getElementById('index-grid'); grid.innerHTML = '';
+             const sortedKeys = Object.keys(BIRD_DATA).sort((a,b) => RARITY_ORDER[BIRD_DATA[a].rarity] - RARITY_ORDER[BIRD_DATA[b].rarity]);
+             for(let key of sortedKeys) {
+                const bird = BIRD_DATA[key];
+                const div = document.createElement('div'); div.className = `card-item`;
+                let rColor = '#ccc';
+                if(bird.rarity === 'UNCOMMON') rColor = '#2ecc71'; if(bird.rarity === 'RARE') rColor = '#3498db'; if(bird.rarity === 'EPIC') rColor = '#9b59b6'; if(bird.rarity === 'LEGENDARY') rColor = '#f1c40f'; if(bird.rarity === 'MYTHIC') rColor = '#e74c3c'; if(bird.rarity === 'DIVINE') rColor = '#00ffff';
+                div.innerHTML = `<div class="case-item-img">${getBirdSVG(bird.color)}</div><div class="card-title fn-font" style="color:${rColor}">${bird.name}</div><div class="fn-font" style="font-size:0.8rem; color:${rColor};">${bird.rarity}</div><div style="color:#aaa; font-size:0.8rem;">HP: ${bird.hp} | SPD: ${bird.speed}x</div>`;
+                grid.appendChild(div);
+            }
+            document.getElementById('index-screen').style.display = 'flex';
+        }
+        function openCareer() {
+            document.getElementById('career-kills').innerText = stats.kills;
+            document.getElementById('career-wins').innerText = stats.wins;
+            document.getElementById('career-deaths').innerText = stats.deaths;
+            document.getElementById('career-screen').style.display = 'flex';
+        }
+        function openControls() { document.getElementById('controls-screen').style.display = 'flex'; }
+
+        function selectBird(k) { currentBirdType = k; createPlayer(k); updateLobbyUI(); openInventory(); }
+        function closeScreens() { document.querySelectorAll('.full-screen-modal').forEach(e=>e.style.display='none'); }
+        function openShop() { document.getElementById('shop-screen').style.display = 'flex'; }
+        
+        function buyBox(type, cost) { if(coins>=cost) { coins-=cost; updateHUD(); closeScreens(); startLoot(type); } else alert("Need more Feathers!"); }
+        function buyBirdDirect(key, cost) {
+            if(coins>=cost) {
+                if(unlockedBirds.includes(key)) { alert("Already Owned!"); return; }
+                coins-=cost; unlockedBirds.push(key); currentBirdType=key; updateHUD(); createPlayer(key); updateLobbyUI(); closeScreens(); alert("PURCHASE SUCCESSFUL!");
+            } else alert("Need more Feathers!");
+        }
+
+        function startLoot(type) {
+            const m = document.getElementById('loot-modal'); m.style.display='flex';
+            const eggCont = document.getElementById('egg-anim-container'); 
+            const tapeCont = document.getElementById('tape-container');
+            const revealCont = document.getElementById('reveal-container');
+            eggCont.style.display='block'; tapeCont.style.display='none'; revealCont.style.display='none';
+            
+            setTimeout(() => {
+                eggCont.style.display='none'; tapeCont.style.display='flex';
+                const tape = document.getElementById('case-tape'); tape.innerHTML=''; tape.style.transform='translateX(0)';
+                
+                const items = [];
+                let winningBird = null;
+                const winIdx = 40;
+                
+                const r = Math.random();
+                let k = 'PIGEON';
+                if(type === 'PREMIUM') {
+                    if(r < 0.05) k='VULTURE'; else if(r < 0.10) k='DIVINE_FALCON'; else if(r < 0.20) k='BALD_EAGLE'; else if(r < 0.25) k='PELICAN'; else if(r < 0.40) k='TOUCAN'; else if(r < 0.55) k='OWL'; else if(r < 0.70) k='CARDINAL'; else if(r < 0.85) k='BLUE_JAY'; else if(r < 0.95) k='PARROT'; else k='SEAGULL';
+                } else {
+                    const allKeys = Object.keys(BIRD_DATA);
+                    k = allKeys[Math.floor(Math.random() * allKeys.length)];
+                }
+                
+                for(let i=0; i<50; i++) {
+                    let tempK = k;
+                    if(i !== winIdx) {
+                        const allKeys = Object.keys(BIRD_DATA);
+                        tempK = allKeys[Math.floor(Math.random() * allKeys.length)];
+                    } else {
+                        winningBird = BIRD_DATA[k];
+                        winningBird.key = k;
+                    }
+                    const bird = BIRD_DATA[tempK];
+                    const d = document.createElement('div'); d.className='case-item';
+                    let eggColor = '#fff';
+                    if(bird.rarity === 'UNCOMMON') eggColor = '#2ecc71';
+                    if(bird.rarity === 'RARE') eggColor = '#3498db';
+                    if(bird.rarity === 'EPIC') eggColor = '#9b59b6';
+                    if(bird.rarity === 'LEGENDARY') eggColor = '#f1c40f';
+                    if(bird.rarity === 'MYTHIC') eggColor = '#e74c3c';
+                    d.innerHTML = `<div class="case-item-img" style="color:${eggColor}; text-shadow:0 0 10px ${eggColor}">🥚</div><div class="fn-font" style="color:white">${bird.name}</div>`;
+                    tape.appendChild(d);
+                }
+
+                setTimeout(()=>{
+                    const offset = -((winIdx * 180) - 400 + 90);
+                    tape.style.transition = 'transform 5s cubic-bezier(0.1, 0, 0.2, 1)'; tape.style.transform = `translateX(${offset}px)`;
+                    
+                    setTimeout(()=>{
+                        tapeCont.style.display='none';
+                        revealCont.style.display='block';
+                        document.getElementById('reveal-name').innerText = winningBird.name;
+                        document.getElementById('reveal-name').style.color = winningBird.color;
+                        document.getElementById('reveal-icon').innerHTML = getBirdSVG(winningBird.color);
+                        
+                        const winKey = winningBird.key;
+                        if(!unlockedBirds.includes(winKey)) { unlockedBirds.push(winKey); currentBirdType=winKey; createPlayer(winKey); } 
+                        else { coins+=200; document.getElementById('reward-text').innerText = "DUPLICATE (+200)"; }
+                        
+                        saveStats(); updateHUD(); updateLobbyUI();
+                    }, 5000);
+                }, 100);
+            }, 1500); 
+        }
+        function closeLoot() { document.getElementById('loot-modal').style.display='none'; }
+        function updateLobbyUI() { document.getElementById('current-bird-display').innerText = BIRD_DATA[currentBirdType].name; document.getElementById('current-rarity-display').innerText = BIRD_DATA[currentBirdType].rarity; }
+        function onQuestProgress() { quest.current++; updateHUD(); if(quest.current >= quest.target) document.getElementById('quest-loot-btn').className = "fn-font unlocked"; }
+        function openQuestLoot() { if(quest.current >= quest.target && !quest.completed) { quest.completed=true; startLoot('QUEST'); }}
+        function readyUp() { 
+            gameState='PLAYING'; 
+            document.getElementById('lobby-screen').style.display='none'; 
+            document.getElementById('top-bar').style.display='none'; // HIDE TOP BAR
+            document.getElementById('hud').style.display='block'; 
+            spawnEnemies(20); 
+        }
+        function resetGame() { 
+            gameState='LOBBY'; 
+            document.getElementById('game-over-screen').style.display='none'; 
+            document.getElementById('lobby-screen').style.display='flex'; 
+            document.getElementById('top-bar').style.display='flex'; // SHOW TOP BAR
+            document.getElementById('hud').style.display='none'; 
+            player.position.set(0,20,0); player.rotation.set(0,0,0); currentSpeed=0; killCount=0; document.exitPointerLock(); 
+        }
+        function gameOver(win) { 
+            gameState='GAMEOVER'; 
+            if(win) {
+                stats.wins++;
+                coins += 500; // WIN REWARD
+                // Confetti logic
+                const canvas = document.getElementById('confetti-canvas');
+                canvas.style.display = 'block';
+                // Simple confetti particle system would go here, omitting for brevity to keep single file clean
+            }
+            saveStats();
+            document.getElementById('game-over-screen').style.display='flex'; document.getElementById('hud').style.display='none'; document.getElementById('game-over-title').innerText = win ? "#1 BIRD GAME ROYALE" : "ELIMINATED"; document.getElementById('game-over-title').style.color = win ? "#00d2ff" : "#ff4757"; document.getElementById('game-over-msg').innerText = win ? "YOU CONTROL THE SKIES" : "YOU CRASHED OR DIED"; document.exitPointerLock(); 
+        }
+
+        init();
+    </script>
+</body>
+</html>
